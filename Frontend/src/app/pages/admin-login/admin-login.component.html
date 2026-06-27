@@ -1,0 +1,22 @@
+<div class="page-container animate-fade-in flex-center">
+  <div class="glass-panel login-box">
+    <h2 class="gradient-text text-center">Admin Access</h2>
+    <p class="subtitle text-center">Enter your credentials to continue</p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" formControlName="username" class="glass-input" placeholder="Admin Username">
+      </div>
+      
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" formControlName="password" class="glass-input" placeholder="••••••••">
+      </div>
+
+      <div *ngIf="errorMessage" class="error-text text-center">{{ errorMessage }}</div>
+
+      <button type="submit" class="btn-primary full-width" [disabled]="loginForm.invalid">Login</button>
+    </form>
+  </div>
+</div>

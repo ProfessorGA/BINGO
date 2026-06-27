@@ -1,0 +1,49 @@
+<div class="admin-page-container">
+  <h2>Profile Management</h2>
+  <p class="text-secondary">Update your login credentials and personal details here.</p>
+
+  <div *ngIf="!currentUser" class="glass-panel profile-card text-center">
+    <p class="text-secondary">Loading Profile or Backend API is offline. Please ensure the .NET backend is running.</p>
+  </div>
+
+  <div class="glass-panel profile-card" *ngIf="currentUser">
+    <h3>Current Administrator</h3>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" [(ngModel)]="currentUser.username" class="glass-input">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="text" [(ngModel)]="currentUser.passwordHash" class="glass-input">
+    </div>
+    <button class="btn-primary" (click)="updateCurrentUser()">Update Profile</button>
+  </div>
+
+  <div class="actions-area">
+    <button class="btn-secondary add-btn" (click)="openModal()">+ Add New Admin User</button>
+  </div>
+
+  <!-- Animated Modal Popup -->
+  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-content glass-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Add New User Details</h3>
+        <button class="close-btn" (click)="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>New Username</label>
+          <input type="text" [(ngModel)]="newUser.username" class="glass-input" placeholder="Enter username">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="text" [(ngModel)]="newUser.passwordHash" class="glass-input" placeholder="Enter password">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" (click)="clearForm()">Clear</button>
+        <button class="btn-primary" (click)="saveNewUser()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>

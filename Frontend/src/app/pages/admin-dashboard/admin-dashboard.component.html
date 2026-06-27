@@ -1,0 +1,41 @@
+<div class="page-container animate-fade-in">
+  <div class="container">
+    <div class="dashboard-header">
+      <h1 class="gradient-text">Admin Dashboard</h1>
+      <button class="btn-secondary" (click)="logout()">Logout</button>
+    </div>
+
+    <div *ngIf="isLoading" class="text-center loading-text">
+      Loading requests...
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-error">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage">
+      <h3 class="section-title">Support Requests ({{ requests.length }})</h3>
+
+      <div *ngIf="requests.length === 0" class="glass-panel empty-state">
+        <p>No support requests yet.</p>
+      </div>
+
+      <div class="requests-grid">
+        <div *ngFor="let req of requests" class="glass-panel request-card">
+          <div class="req-header">
+            <h4>{{ req.firstName }} {{ req.lastName }}</h4>
+            <span class="date-badge">{{ req.createdAt | date:'mediumDate' }}</span>
+          </div>
+          <div class="req-contact">
+            <p><strong>Email:</strong> <a href="mailto:{{ req.email }}">{{ req.email }}</a></p>
+            <p><strong>Phone:</strong> {{ req.countryCode }} {{ req.phoneNumber }}</p>
+          </div>
+          <div class="req-message">
+            <strong>Message:</strong>
+            <p>{{ req.helpMessage }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

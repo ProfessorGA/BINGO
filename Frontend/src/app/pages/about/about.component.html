@@ -1,0 +1,19 @@
+<div class="about-container">
+  <div class="glass-panel about-card">
+    <div *ngIf="isLoading" class="loading-state">
+      <p>Loading...</p>
+    </div>
+
+    <div *ngIf="!isLoading && aboutContent">
+      <h1 class="gradient-text">{{ aboutContent.header }}</h1>
+      <div class="about-description">
+        <p>{{ aboutContent.description }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && !aboutContent" class="empty-state">
+      <h1>About Me</h1>
+      <p>No content available. Please update the About section in the Admin Panel.</p>
+    </div>
+  </div>
+</div>

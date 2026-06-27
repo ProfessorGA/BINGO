@@ -1,0 +1,467 @@
+<!-- Confetti Overlay for winner -->
+<div *ngIf="confettiParticles.length > 0" class="confetti-container">
+  <div *ngFor="let p of confettiParticles" 
+       class="confetti-particle" 
+       [style.left.%]="p.x" 
+       [style.top.px]="p.y" 
+       [style.width.px]="p.size" 
+       [style.height.px]="p.size" 
+       [style.background-color]="p.color" 
+       [style.transform]="'rotate(' + p.rotation + 'deg)'">
+  </div>
+</div>
+
+<div class="container py-4 min-vh-100 d-flex flex-column justify-content-center align-items-center">
+
+  <!-- ================= STATE 1: LOADING ================= -->
+  <div *ngIf="isLoading && !errorMessage" class="glass-card text-center py-5 animate-fade-in-up" style="max-width: 450px; width: 100%;">
+    <div class="spinner-border text-primary mb-4" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h3 class="fw-semibold">{{ loadingMessage }}</h3>
+    <p class="text-secondary small mt-2">Configuring real-time game channels...</p>
+  </div>
+
+  <!-- ================= STATE 2: ERROR ================= -->
+  <div *ngIf="errorMessage" class="glass-card text-center py-5 animate-fade-in-up" style="max-width: 450px; width: 100%;">
+    <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
+      <i class="bi bi-x-circle-fill text-danger fs-1"></i>
+    </div>
+    <h3 class="fw-bold mb-3 text-danger">Error Occurred</h3>
+    <p class="text-secondary mb-4">{{ errorMessage }}</p>
+    <button class="btn btn-glass-primary px-4 py-3" (click)="returnHome()">
+      <i class="bi bi-house-door-fill me-2"></i>Return Home
+    </button>
+  </div>
+
+  <!-- ================= STATE 3: ROOM ACTIVE ================= -->
+  <div *ngIf="!isLoading && !errorMessage && room" class="w-100 animate-fade-in-up">
+    
+    <!-- HEADER BAR: Room Details -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-3 border-bottom border-white border-opacity-5">
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-dark border border-white border-opacity-10 py-2 px-3 rounded-pill text-secondary">
+          Player: <strong class="text-success">{{ me?.name }}</strong>
+        </span>
+        <span class="badge bg-dark border border-white border-opacity-10 py-2 px-3 rounded-pill text-secondary">
+          Room Code: <strong class="text-primary">{{ roomCode }}</strong>
+        </span>
+        <span class="badge bg-dark border border-white border-opacity-10 py-2 px-3 rounded-pill text-secondary">
+          Role: <strong class="text-info">{{ me?.isHost ? 'Host' : 'Player' }}</strong>
+        </span>
+        <span class="badge bg-dark border border-white border-opacity-10 py-2 px-3 rounded-pill text-secondary">
+          Lobby: <strong class="text-warning">{{ room.players.length }}/5 Players</strong>
+        </span>
+      </div>
+      <div class="mt-2 mt-sm-0">
+        <button class="btn btn-glass btn-sm me-2" (click)="copyRoomCode()">
+          <i class="bi bi-clipboard-fill me-1"></i> Code
+        </button>
+        <button class="btn btn-glass btn-sm" (click)="copyShareUrl()">
+          <i class="bi bi-share-fill me-1"></i> Share Link
+        </button>
+      </div>
+    </div>
+
+    <!-- Status & Turn Banner at the top -->
+    <div class="w-100 mb-4 animate-fade-in-up">
+      <div class="d-flex align-items-center justify-content-center py-3 px-4 rounded-3 text-center border shadow-sm transition-all"
+           [class.bg-success-subtle]="isMyTurn() && room.state === 'Playing'"
+           [class.text-success]="isMyTurn() && room.state === 'Playing'"
+           [class.border-success]="isMyTurn() && room.state === 'Playing'"
+           [class.bg-warning-subtle]="!isMyTurn() && room.state === 'Playing'"
+           [class.text-warning]="!isMyTurn() && room.state === 'Playing'"
+           [class.border-warning]="!isMyTurn() && room.state === 'Playing'"
+           [class.bg-dark]="room.state !== 'Playing'"
+           [class.text-secondary]="room.state !== 'Playing'"
+           [class.border-white]="room.state !== 'Playing'"
+           [class.border-opacity-10]="room.state !== 'Playing'">
+           
+        <div class="d-flex align-items-center gap-2">
+          <!-- Pulse indicator for active state -->
+          <div *ngIf="room.state === 'Playing'" class="pulse-indicator"
+               [class.bg-success]="isMyTurn()" 
+               [class.bg-warning]="!isMyTurn()">
+          </div>
+          <span class="fw-bold fs-5 text-uppercase tracking-wider">
+            <ng-container *ngIf="room.state === 'Waiting'">
+              Lobby Phase &bull; Waiting for Players to Join
+            </ng-container>
+            <ng-container *ngIf="room.state === 'SelectingNumbers'">
+              Setup Phase &bull; Arrange Your Board (1 - 25)
+            </ng-container>
+            <ng-container *ngIf="room.state === 'Playing'">
+              {{ isMyTurn() ? 'Your Turn to Call a Number!' : ('Waiting for ' + getTurnPlayerName() + ' to Call...') }}
+            </ng-container>
+            <ng-container *ngIf="room.state === 'Finished'">
+              Game Over &bull; Match Finished
+            </ng-container>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUB-STATE A: WAITING (LOBBY) ================= -->
+    <div *ngIf="room.state === 'Waiting'" class="row g-4 justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="glass-card text-center py-5">
+          <div class="pulse-container mb-4">
+            <div class="pulse-circle"></div>
+            <i class="bi bi-people-fill text-primary pulse-icon"></i>
+          </div>
+          <h2 class="fw-bold mb-2">Game Lobby</h2>
+          <p class="text-secondary mb-4">Give friends the room code below. Support up to 5 players!</p>
+          
+          <div class="bg-dark bg-opacity-40 p-3 rounded-3 border border-white border-opacity-5 mb-4 text-center">
+            <span class="small text-secondary d-block mb-1">ROOM CODE</span>
+            <h1 class="fw-extrabold tracking-widest text-primary mb-0">{{ roomCode }}</h1>
+          </div>
+
+          <div class="d-grid gap-2">
+            <!-- Host Setup Trigger -->
+            <button 
+              *ngIf="me?.isHost"
+              class="btn btn-glass-primary py-3" 
+              [disabled]="room.players.length < 2"
+              (click)="startSetup()">
+              <i class="bi bi-play-circle-fill me-2 fs-5"></i>Start Board Setup
+            </button>
+            <div *ngIf="!me?.isHost" class="alert alert-secondary border-secondary border-opacity-10 bg-dark bg-opacity-50 text-secondary py-3 text-center mb-0">
+              <span class="spinner-grow spinner-grow-sm text-primary me-2" role="status"></span>
+              Waiting for Host to start setup...
+            </div>
+            
+            <button class="btn btn-glass py-3 mt-2" (click)="returnHome()">
+              <i class="bi bi-door-closed-fill me-2"></i>Exit Lobby
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Joined Players List -->
+      <div class="col-md-6 col-lg-5">
+        <div class="glass-card h-100">
+          <h4 class="fw-bold mb-4 d-flex align-items-center">
+            <i class="bi bi-list-stars text-primary me-2"></i>Players Joined
+          </h4>
+          <div class="d-flex flex-column gap-3">
+            <div 
+              *ngFor="let p of room.players" 
+              class="d-flex align-items-center p-3 rounded-3 border transition-all"
+              [class.bg-primary]="p.playerId === playerId"
+              [class.bg-opacity-10]="p.playerId === playerId"
+              [class.border-primary]="p.playerId === playerId"
+              [class.border-white]="p.playerId !== playerId"
+              [class.border-opacity-5]="p.playerId !== playerId"
+              [class.bg-white]="p.playerId !== playerId"
+              [class.bg-opacity-5]="p.playerId !== playerId">
+              
+              <div class="position-relative me-3">
+                <i class="bi bi-person-circle fs-3 text-secondary"></i>
+                <span 
+                  class="position-absolute bottom-0 end-0 p-1 border border-dark rounded-circle"
+                  [class.bg-success]="p.isConnected"
+                  [class.bg-danger]="!p.isConnected"
+                  style="width: 10px; height: 10px;">
+                </span>
+              </div>
+              
+              <div>
+                <span class="fw-semibold text-white fs-5">
+                  {{ p.name }}
+                  <span *ngIf="p.playerId === playerId" class="text-primary small ms-1">(You)</span>
+                </span>
+                <span class="text-secondary small d-block" *ngIf="p.isHost">
+                  <i class="bi bi-patch-check-fill text-info me-1"></i>Host
+                </span>
+              </div>
+
+              <div class="ms-auto">
+                <span class="badge bg-secondary rounded-pill px-3 py-1">Joined</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUB-STATE B: SELECTING NUMBERS ================= -->
+    <div *ngIf="room.state === 'SelectingNumbers'" class="row g-4 justify-content-center">
+      <!-- Info Column -->
+      <div class="col-lg-4">
+        <div class="glass-card h-100 d-flex flex-column justify-content-between">
+          <div>
+            <h3 class="fw-bold mb-3"><span class="gradient-text">Board Setup</span></h3>
+            <p class="text-secondary">Click the empty cells on the grid to place numbers <strong>1 to 25</strong> sequentially in any arrangement you prefer.</p>
+            
+            <div class="alert alert-info border-info border-opacity-10 bg-info bg-opacity-5 text-info rounded-3 py-2 px-3 small d-flex align-items-center mb-4">
+              <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+              <span>Your clicks will place numbers sequentially: 1, 2, 3 ... 25.</span>
+            </div>
+
+            <div class="bg-dark bg-opacity-45 p-3 rounded-3 border border-white border-opacity-5 mb-4">
+              <div class="d-flex justify-content-between mb-2 small">
+                <span class="text-secondary">Numbers Placed:</span>
+                <span class="fw-bold text-white">{{ nextNumberToPlace - 1 }} / 25</span>
+              </div>
+              <div class="progress bg-secondary bg-opacity-10" style="height: 6px;">
+                <div class="progress-bar bg-primary" role="progressbar" [style.width.%]="(nextNumberToPlace - 1) * 4"></div>
+              </div>
+            </div>
+
+            <!-- Players Ready Status -->
+            <div class="mb-3">
+              <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Players Status</span>
+              <div class="d-flex flex-column gap-2">
+                <div 
+                  *ngFor="let p of room.players" 
+                  class="d-flex align-items-center py-2 px-3 rounded-3 bg-white bg-opacity-5 border border-white border-opacity-5 small">
+                  <span class="text-white">{{ p.name }} <span *ngIf="p.playerId === playerId" class="text-secondary opacity-75">(You)</span></span>
+                  <span class="ms-auto badge rounded-pill px-3 py-1" 
+                        [class.bg-success-subtle]="p.isReady" [class.text-success]="p.isReady"
+                        [class.bg-warning-subtle]="!p.isReady" [class.text-warning]="!p.isReady">
+                    {{ p.isReady ? 'READY' : 'ARRANGING...' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid gap-2 mt-4">
+            <button class="btn btn-glass-primary py-3" [disabled]="nextNumberToPlace <= 25 || isReadyClicked" (click)="submitReady()">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              {{ isReadyClicked ? 'Waiting for others...' : 'I am Ready' }}
+            </button>
+            <button class="btn btn-glass py-3" [disabled]="nextNumberToPlace === 1 || isReadyClicked" (click)="clearBoard()">
+              <i class="bi bi-arrow-counterclockwise me-2"></i>Clear Board
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid Column -->
+      <div class="col-lg-6 col-md-8">
+        <div class="glass-card">
+          <div class="setup-grid">
+            <button 
+              *ngFor="let num of boardNumbers; let idx = index" 
+              class="setup-cell transition-all"
+              [class.cell-empty]="num === 0"
+              [class.cell-filled]="num !== 0"
+              [disabled]="isReadyClicked"
+              (click)="placeNumber(idx)">
+              {{ num === 0 ? '' : num }}
+            </button>
+          </div>
+          <div *ngIf="gameErrorMessage" class="text-danger small mt-3 text-center">
+            <i class="bi bi-exclamation-circle-fill me-1"></i>{{ gameErrorMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUB-STATE C: PLAYING ================= -->
+    <div *ngIf="room.state === 'Playing'" class="row g-4 justify-content-center">
+      
+      <!-- Center: MY BOARD -->
+      <div class="col-lg-7 col-md-8">
+        <div class="glass-card text-center border-primary border-opacity-25 shadow-lg">
+          
+          <!-- BINGO Letters -->
+          <div class="bingo-header mb-4">
+            <span class="bingo-letter" [class.letter-active]="isPlayerLetterCompleted(me, 0)">B</span>
+            <span class="bingo-letter" [class.letter-active]="isPlayerLetterCompleted(me, 1)">I</span>
+            <span class="bingo-letter" [class.letter-active]="isPlayerLetterCompleted(me, 2)">N</span>
+            <span class="bingo-letter" [class.letter-active]="isPlayerLetterCompleted(me, 3)">G</span>
+            <span class="bingo-letter" [class.letter-active]="isPlayerLetterCompleted(me, 4)">O</span>
+          </div>
+
+          <!-- Board Header / Bingos count -->
+          <div class="d-flex align-items-center justify-content-between mb-3 px-2">
+            <h5 class="fw-bold mb-0 d-flex align-items-center">
+              <i class="bi bi-person-fill text-primary me-2"></i>Your Board
+            </h5>
+            <span class="badge bg-primary bg-opacity-20 text-primary fs-6 px-3 py-1 rounded-pill">
+              {{ me?.board?.completedLinesCount || 0 }} Bingos
+            </span>
+          </div>
+
+          <!-- Board cells: interactive when my turn -->
+          <div class="play-grid">
+            <button 
+              *ngFor="let cell of me?.board?.cells" 
+              class="play-cell cell-btn transition-all"
+              [class.cell-marked]="cell.isMarked"
+              [class.my-turn-playable]="isMyTurn() && !cell.isMarked"
+              [disabled]="!isMyTurn() || cell.isMarked"
+              (click)="onCellClick(cell)">
+              <span>{{ cell.number }}</span>
+              <i *ngIf="cell.isMarked" class="bi bi-check-lg cell-check-icon"></i>
+            </button>
+          </div>
+
+          <!-- Active Turn status description inside the card -->
+          <div class="border-top border-white border-opacity-5 pt-3 mt-3">
+            <div class="d-flex align-items-center justify-content-center">
+              <div class="pulse-indicator me-3" [class.bg-success]="isMyTurn()" [class.bg-secondary]="!isMyTurn()"></div>
+              <div>
+                <h5 class="fw-bold mb-0" [class.text-success]="isMyTurn()" [class.text-secondary]="!isMyTurn()">
+                  {{ isMyTurn() ? 'Your Turn to Call!' : 'Waiting for Opponent...' }}
+                </h5>
+                <p class="text-secondary small mb-0 mt-1">
+                  {{ isMyTurn() ? 'Click any number on your board to call it.' : 'Please wait for your turn.' }}
+                </p>
+              </div>
+            </div>
+            <div *ngIf="gameErrorMessage" class="text-danger small mt-2 text-center">
+              <i class="bi bi-exclamation-circle-fill me-1"></i>{{ gameErrorMessage }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Players status list & numbers called log -->
+      <div class="col-lg-4">
+        <div class="glass-card h-100 d-flex flex-column justify-content-between">
+          <div>
+            <h4 class="fw-bold mb-3 d-flex align-items-center">
+              <i class="bi bi-controller text-primary me-2"></i>Active Match
+            </h4>
+
+            <!-- Opponents status sidebar -->
+            <div class="mb-4">
+              <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Opponents progress</span>
+              <div class="d-flex flex-column gap-3">
+                <div 
+                  *ngFor="let p of opponents" 
+                  class="p-3 rounded-3 bg-white bg-opacity-5 border transition-all"
+                  [class.border-success]="room.currentTurnPlayerId === p.playerId"
+                  [class.border-white]="room.currentTurnPlayerId !== p.playerId"
+                  [class.border-opacity-5]="room.currentTurnPlayerId !== p.playerId"
+                  [style.box-shadow]="room.currentTurnPlayerId === p.playerId ? '0 0 15px rgba(25, 135, 84, 0.25)' : ''">
+                  
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center">
+                      <span 
+                        class="p-1 rounded-circle me-2"
+                        [class.bg-success]="p.isConnected"
+                        [class.bg-danger]="!p.isConnected"
+                        [title]="p.isConnected ? 'Online' : 'Offline'"
+                        style="width: 8px; height: 8px;">
+                      </span>
+                      <strong class="text-white">{{ p.name }}</strong>
+                      <span *ngIf="room.currentTurnPlayerId === p.playerId" class="badge bg-success ms-2 small">Calling...</span>
+                    </div>
+                    <span class="text-secondary small">{{ p.board.completedLinesCount }} Lines</span>
+                  </div>
+
+                  <!-- Opponent B-I-N-G-O letters status -->
+                  <div class="opponent-bingo-tracker">
+                    <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 0)">B</span>
+                    <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 1)">I</span>
+                    <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 2)">N</span>
+                    <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 3)">G</span>
+                    <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 4)">O</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Numbers called log -->
+            <div class="bg-dark bg-opacity-30 rounded-3 p-3 border border-white border-opacity-5 mb-3">
+              <div class="small text-secondary mb-2 uppercase fw-semibold tracking-wider">Called Numbers</div>
+              <div class="d-flex flex-wrap gap-2 overflow-auto" style="max-height: 150px;">
+                <span 
+                  *ngFor="let num of room.selectedNumbers" 
+                  class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-20 px-3 py-2 fs-6 rounded-pill animate-fade-in">
+                  {{ num }}
+                </span>
+                <div *ngIf="room.selectedNumbers.length === 0" class="text-secondary small italic py-2 text-center w-100">
+                  No numbers called yet.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid mt-4">
+            <button class="btn btn-glass btn-sm border-danger border-opacity-20 text-danger" (click)="returnHome()">
+              <i class="bi bi-box-arrow-left me-2"></i>Forfeit & Quit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUB-STATE D: FINISHED ================= -->
+    <div *ngIf="room.state === 'Finished'" class="d-flex justify-content-center align-items-center">
+      <div class="glass-card text-center py-5 border-success border-opacity-25 animate-game-over-pop" style="max-width: 500px; width: 100%;">
+        <div class="win-trophy mb-4 animate-bounce-slow">
+          <i class="bi bi-trophy-fill text-warning animate-glow-trophy" style="font-size: 6rem;"></i>
+        </div>
+        
+        <h1 class="fw-extrabold tracking-tight mb-1 animate-pulse-winner">
+          <span [class.gradient-text-success]="room.winnerId === playerId" [class.text-danger]="room.winnerId !== playerId">
+            {{ room.winnerId === playerId ? 'VICTORY!' : 'DEFEAT' }}
+          </span>
+        </h1>
+        
+        <h3 class="fw-bold text-white mb-3 text-uppercase tracking-wider">
+          Winner: <span class="gradient-text">{{ getWinnerName() }}</span>
+        </h3>
+        
+        <p class="text-secondary small mb-4">
+          {{ room.winnerId === playerId ? 'Superb job! You dominated the BINGO grid!' : ('Better luck next time! ' + getWinnerName() + ' won this round.') }}
+        </p>
+
+        <!-- Final scoreboard list of all players -->
+        <div class="bg-dark bg-opacity-40 p-3 rounded-3 border border-white border-opacity-5 mb-4 text-center">
+          <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Final Rankings</span>
+          <div class="d-flex flex-column gap-2 text-start">
+            <div 
+              *ngFor="let p of room.players" 
+              class="d-flex justify-content-between align-items-center py-2 px-3 rounded bg-white bg-opacity-5">
+              <span class="text-white fw-medium">
+                {{ p.name }} 
+                <span *ngIf="p.playerId === playerId" class="text-secondary small">(You)</span>
+                <span *ngIf="p.playerId === room.winnerId" class="text-warning ms-1 font-size-sm"><i class="bi bi-trophy-fill me-1"></i>Winner</span>
+              </span>
+              <strong class="text-white">{{ p.board.completedLinesCount }} Lines Completed</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-grid gap-2">
+          <button class="btn btn-glass-primary py-3" [disabled]="me?.playAgainRequested" (click)="playAgain()">
+            <i class="bi bi-arrow-repeat me-2 fs-5"></i>
+            {{ me?.playAgainRequested ? 'Waiting for others...' : 'Request Play Again / Rematch' }}
+          </button>
+          <button class="btn btn-glass py-3" (click)="returnHome()">
+            <i class="bi bi-house-door-fill me-2"></i>Return Home
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Developed & Designed Footer -->
+    <div class="text-center w-100 mt-5 border-top border-white border-opacity-5 pt-3">
+      <p class="text-secondary small mb-1">
+        Developed & Designed by <a href="https://alenmathewzachariah.vercel.app/" target="_blank" class="text-primary text-decoration-none fw-semibold">Alen Mathew Zachariah</a>
+      </p>
+      <p class="text-secondary opacity-50 small mb-0">
+        &copy; 2026 BINGO Multiplayer. All rights reserved.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= DISCONNECTED WINDOW OVERLAY ================= -->
+<div *ngIf="isOpponentDisconnected" class="disconnected-overlay d-flex justify-content-center align-items-center animate-fade-in">
+  <div class="glass-card text-center p-5 border-warning border-opacity-25" style="max-width: 450px;">
+    <div class="spinner-grow text-warning mb-4" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h3 class="fw-bold text-warning mb-2">Opponent Disconnected</h3>
+    <p class="text-secondary">Waiting for <strong>{{ disconnectedOpponentName }}</strong> to reconnect...</p>
+    <div class="countdown-circle mx-auto my-3 text-warning border-warning">
+      <span>{{ disconnectCountdown }}</span>
+    </div>
+    <p class="text-secondary small mt-2">The room will close automatically if connection is not restored within 30 seconds.</p>
+  </div>
+</div>

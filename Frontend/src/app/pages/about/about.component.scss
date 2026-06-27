@@ -1,0 +1,51 @@
+.about-container {
+  padding: 150px 5% 50px 5%;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 80vh;
+}
+
+.about-card {
+  padding: 50px;
+  border-radius: 30px;
+  background: rgba(30, 25, 45, 0.4);
+
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 30px;
+    font-weight: 800;
+  }
+}
+
+.about-description {
+  p {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    white-space: pre-wrap; /* Preserves line breaks from the textarea */
+  }
+}
+
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 50px 0;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .about-container {
+    padding-top: 120px;
+  }
+  
+  .about-card {
+    padding: 30px;
+    
+    h1 {
+      font-size: 2.2rem;
+    }
+    
+    .about-description p {
+      font-size: 1.1rem;
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# IDEs and Editors
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build and Publish Outputs
+bin/
+obj/
+dist/
+out/
+tmp/
+out-tsc/
+bazel-out/
+/.angular/cache
+
+# Node / JavaScript
+node_modules/
+npm-debug.log
+yarn-error.log
+/connect.lock
+
+# Test outputs
+/coverage
+testem.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Deployment logs / caches
+.vercel/
+.render/

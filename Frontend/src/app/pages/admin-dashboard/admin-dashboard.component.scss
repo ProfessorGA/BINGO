@@ -1,0 +1,133 @@
+.page-container {
+  padding: 120px 0 60px 0;
+  min-height: calc(100vh - var(--nav-height));
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+
+  h1 {
+    font-size: 2.5rem;
+  }
+}
+
+.section-title {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  padding: 40px 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.requests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.request-card {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  .req-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(88, 166, 255, 0.2);
+    padding-bottom: 15px;
+
+    h4 {
+      font-size: 1.2rem;
+      color: var(--accent-color);
+    }
+  }
+
+  .date-badge {
+    background: rgba(88, 166, 255, 0.1);
+    color: #a5d6ff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    border: 1px solid rgba(88, 166, 255, 0.2);
+  }
+
+  .req-contact {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+
+    strong {
+      color: var(--text-primary);
+    }
+    
+    a {
+      color: var(--accent-color);
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .req-message {
+    background: rgba(22, 27, 34, 0.5);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+
+    strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--text-primary);
+    }
+
+    p {
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+    }
+  }
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(248, 81, 73, 0.1);
+    border-color: rgba(248, 81, 73, 0.4);
+    color: #ff7b72;
+  }
+}
+
+.alert {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.alert-error {
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  color: #ff7b72;
+}
