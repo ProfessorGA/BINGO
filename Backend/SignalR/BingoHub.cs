@@ -354,6 +354,21 @@ namespace Backend.SignalR
             await Clients.Group(roomCode).SendAsync("UpdateBoard", room.ToDto());
         }
 
+        public async Task BroadcastActionNotification(string roomCode, string playerId, string actionType)
+        {
+            roomCode = roomCode.ToUpperInvariant();
+            var room = _roomService.GetRoom(roomCode);
+            if (room == null) return;
+
+            var player = room.GetPlayer(playerId);
+            if (player == null) return;
+
+            UpdateActivity(room, playerId);
+
+            string actionText = actionType == "code" ? "copied the Room Code" : "copied the Share Link";
+            await Clients.Group(roomCode).SendAsync("ReceiveActionNotification", player.Name, actionText);
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var (room, player) = _roomService.GetRoomAndPlayerByConnectionId(Context.ConnectionId);

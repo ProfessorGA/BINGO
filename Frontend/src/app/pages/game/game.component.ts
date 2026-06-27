@@ -55,6 +55,10 @@ export class GameComponent implements OnInit, OnDestroy {
   isPlayersListOpen: boolean = false;
   private heartbeatInterval: any;
 
+  // Top action notification
+  topNotification: string | null = null;
+  private topNotificationTimeout: any;
+
   @ViewChild('chatScrollContainer') private chatScrollContainer!: ElementRef;
 
   private subs: Subscription = new Subscription();
@@ -96,6 +100,9 @@ export class GameComponent implements OnInit, OnDestroy {
     this.clearConfetti();
     this.clearHeartbeat();
     this.clearChatToastTimeout();
+    if (this.topNotificationTimeout) {
+      clearTimeout(this.topNotificationTimeout);
+    }
   }
 
   private initializeGame() {
@@ -205,6 +212,13 @@ export class GameComponent implements OnInit, OnDestroy {
     this.subs.add(
       this.signalrService.errorOccurred$.subscribe(err => {
         this.gameErrorMessage = err;
+      })
+    );
+
+    // Action Notification listener
+    this.subs.add(
+      this.signalrService.actionNotificationReceived$.subscribe(data => {
+        this.showTopNotification(`${data.playerName} ${data.actionText}`);
       })
     );
 
@@ -364,20 +378,26 @@ export class GameComponent implements OnInit, OnDestroy {
 
   copyRoomCode() {
     this.copyToClipboard(this.roomCode)
-      .then(() => alert(`Room Code copied to clipboard: ${this.roomCode}`))
+      .then(() => {
+        this.showTopNotification(`Room Code copied: ${this.roomCode}`);
+        this.signalrService.broadcastActionNotification('code').catch(() => {});
+      })
       .catch(err => {
         console.error('Failed to copy:', err);
-        alert(`Could not copy automatically. The room code is: ${this.roomCode}`);
+        this.showTopNotification(`Could not copy. The room code is: ${this.roomCode}`);
       });
   }
 
   copyShareUrl() {
     const shareUrl = `${window.location.origin}/join/${this.roomCode}`;
     this.copyToClipboard(shareUrl)
-      .then(() => alert(`Shareable link copied to clipboard!`))
+      .then(() => {
+        this.showTopNotification(`Shareable link copied to clipboard!`);
+        this.signalrService.broadcastActionNotification('share').catch(() => {});
+      })
       .catch(err => {
         console.error('Failed to copy:', err);
-        alert(`Could not copy automatically. The share link is: ${shareUrl}`);
+        this.showTopNotification(`Could not copy. The share link is: ${shareUrl}`);
       });
   }
 
@@ -476,6 +496,16 @@ export class GameComponent implements OnInit, OnDestroy {
         this.chatScrollContainer.nativeElement.scrollTop = this.chatScrollContainer.nativeElement.scrollHeight;
       }
     } catch (err) {}
+  }
+
+  showTopNotification(msg: string) {
+    if (this.topNotificationTimeout) {
+      clearTimeout(this.topNotificationTimeout);
+    }
+    this.topNotification = msg;
+    this.topNotificationTimeout = setTimeout(() => {
+      this.topNotification = null;
+    }, 3500);
   }
 
   // Member management

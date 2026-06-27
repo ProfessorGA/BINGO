@@ -11,6 +11,15 @@
   </div>
 </div>
 
+<!-- ================= TOP ACTION NOTIFICATION ================= -->
+<div class="toast-notification-container position-fixed top-0 start-50 translate-middle-x m-3 z-3" *ngIf="topNotification">
+  <div class="toast-notification p-3 rounded-3 shadow-lg border border-primary border-opacity-20 d-flex align-items-center gap-2 animate-fade-in-down animate-bounce-slow"
+       style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); color: #fff; border: 1px solid rgba(59, 130, 246, 0.25);">
+    <i class="bi bi-info-circle-fill text-primary"></i>
+    <span class="small fw-semibold">{{ topNotification }}</span>
+  </div>
+</div>
+
 <div class="container py-4 min-vh-100 d-flex flex-column justify-content-center align-items-center">
 
   <!-- ================= STATE 1: LOADING ================= -->
@@ -72,7 +81,7 @@
       </div>
       <div class="row g-2">
         <div class="col-md-4 col-sm-6" *ngFor="let p of room.players">
-          <div class="d-flex align-items-center p-2 rounded bg-white bg-opacity-5 border border-white border-opacity-5 animate-fade-in">
+          <div class="d-flex align-items-center p-2 rounded border animate-fade-in" style="background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.05);">
             <span class="p-1 rounded-circle me-2"
                   [class.bg-success]="p.isConnected && !p.isIdle"
                   [class.bg-warning]="p.isConnected && p.isIdle"
@@ -187,13 +196,10 @@
             <div 
               *ngFor="let p of room.players" 
               class="d-flex align-items-center p-3 rounded-3 border transition-all"
-              [class.bg-primary]="p.playerId === playerId"
-              [class.bg-opacity-10]="p.playerId === playerId"
               [class.border-primary]="p.playerId === playerId"
               [class.border-white]="p.playerId !== playerId"
               [class.border-opacity-5]="p.playerId !== playerId"
-              [class.bg-white]="p.playerId !== playerId"
-              [class.bg-opacity-5]="p.playerId !== playerId">
+              [style.background]="p.playerId === playerId ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)'">
               
               <div class="position-relative me-3">
                 <i class="bi bi-person-circle fs-3 text-secondary"></i>
@@ -233,7 +239,7 @@
             <h3 class="fw-bold mb-3"><span class="gradient-text">Board Setup</span></h3>
             <p class="text-secondary">Click the empty cells on the grid to place numbers <strong>1 to 25</strong> sequentially in any arrangement you prefer.</p>
             
-            <div class="alert alert-info border-info border-opacity-10 bg-info bg-opacity-5 text-info rounded-3 py-2 px-3 small d-flex align-items-center mb-4">
+            <div class="alert border-info border-opacity-10 text-info rounded-3 py-2 px-3 small d-flex align-items-center mb-4" style="background: rgba(13, 202, 240, 0.15);">
               <i class="bi bi-info-circle-fill me-2 fs-5"></i>
               <span>Your clicks will place numbers sequentially: 1, 2, 3 ... 25.</span>
             </div>
@@ -254,7 +260,8 @@
               <div class="d-flex flex-column gap-3">
                 <div 
                   *ngFor="let p of room.players" 
-                  class="p-2.5 rounded-3 bg-white bg-opacity-5 border border-white border-opacity-5">
+                  class="p-2.5 rounded-3 border" 
+                  style="background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.05);">
                   <div class="d-flex align-items-center mb-1.5 small">
                     <span class="text-white fw-medium">
                       {{ p.name }} 
@@ -347,7 +354,7 @@
               class="play-cell cell-btn transition-all"
               [class.cell-marked]="cell.isMarked"
               [class.my-turn-playable]="isMyTurn() && !cell.isMarked"
-              [disabled]="!isMyTurn() || cell.isMarked"
+              [class.opacity-50]="!isMyTurn() && !cell.isMarked"
               (click)="onCellClick(cell)">
               <span>{{ cell.number }}</span>
               <i *ngIf="cell.isMarked" class="bi bi-check-lg cell-check-icon"></i>
@@ -584,66 +591,87 @@
         </button>
       </div>
 
-      <!-- Translucent Slide-up Chat Window -->
-      <div class="chat-window glass-card flex-column position-absolute bottom-100 end-0 mb-3 shadow-lg border border-white border-opacity-10 animate-slide-up"
+      <!-- WhatsApp Messenger Adaptive Chat Window -->
+      <div class="chat-window flex-column position-absolute shadow-lg animate-slide-up"
            [style.display]="isChatOpen ? 'flex' : 'none'"
-           style="width: 320px; height: 400px; border-radius: 12px; overflow: hidden; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px);">
+           style="border-radius: 16px; overflow: hidden; background: #0b141a; border: 1px solid #222e35; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
            
-        <!-- Chat Header -->
-        <div class="chat-header d-flex align-items-center justify-content-between p-3 border-bottom border-white border-opacity-5">
-          <h6 class="fw-bold mb-0 text-white"><i class="bi bi-chat-text-fill text-primary me-2"></i>Match Chat</h6>
+        <!-- WhatsApp Header -->
+        <div class="chat-header d-flex align-items-center justify-content-between p-3" style="background: #202c33; border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <div class="d-flex align-items-center gap-2">
+            <span class="p-1.5 rounded-circle bg-success bg-opacity-15 d-inline-flex align-items-center justify-content-center">
+              <i class="bi bi-chat-text-fill text-success" style="font-size: 1.1rem;"></i>
+            </span>
+            <div class="text-start">
+              <h6 class="fw-bold mb-0 text-white" style="font-size: 0.95rem;">Match Chat</h6>
+              <span class="text-success small fw-medium" style="font-size: 0.72rem;">Online</span>
+            </div>
+          </div>
           <button class="btn-close btn-close-white btn-sm border-0 bg-transparent" (click)="toggleChat()"></button>
         </div>
 
-        <!-- Chat Body (Messages List) -->
+        <!-- WhatsApp Chat Body with Wallpaper grid effect -->
         <div class="chat-body flex-grow-1 p-3 overflow-auto d-flex flex-column gap-2" 
              #chatScrollContainer
-             style="scroll-behavior: smooth;">
+             style="scroll-behavior: smooth; background-color: #0b141a; background-image: radial-gradient(rgba(32, 44, 51, 0.6) 1.5px, transparent 1.5px); background-size: 16px 16px;">
+          
           <div 
             *ngFor="let msg of room.chatMessages" 
-            class="d-flex flex-column"
+            class="d-flex flex-column mb-1"
             [class.align-items-end]="msg.senderId === playerId"
             [class.align-items-start]="msg.senderId !== playerId">
             
-            <span class="small text-secondary mb-0.5" style="font-size: 0.7rem;">
-              {{ msg.senderName }}
-            </span>
-            <div class="p-2.5 rounded-3 text-white small" 
-                 [class.bg-primary]="msg.senderId === playerId"
-                 [class.bg-white]="msg.senderId !== playerId"
-                 [class.bg-opacity-10]="msg.senderId !== playerId"
-                 [class.border]="msg.senderId !== playerId"
-                 [class.border-white]="msg.senderId !== playerId"
-                 [class.border-opacity-5]="msg.senderId !== playerId"
-                 style="max-width: 85%; word-break: break-word; text-align: left;">
-              {{ msg.text }}
+            <!-- Message Bubble -->
+            <div class="p-2.5 shadow-sm" 
+                 [style.background]="msg.senderId === playerId ? '#005c4b' : '#202c33'"
+                 [style.border-radius]="msg.senderId === playerId ? '10px 10px 0px 10px' : '10px 10px 10px 0px'"
+                 [style.border]="msg.senderId === playerId ? '1px solid rgba(0, 92, 75, 0.2)' : '1px solid rgba(32, 44, 51, 0.2)'"
+                 style="max-width: 85%; word-break: break-word; color: #e9edef;">
+              
+              <!-- Sender Name (For Opponents only) -->
+              <span class="small fw-semibold d-block mb-1 text-warning" 
+                    *ngIf="msg.senderId !== playerId" 
+                    style="font-size: 0.75rem; letter-spacing: 0.3px;">
+                {{ msg.senderName }}
+              </span>
+              
+              <!-- Chat text message -->
+              <span class="d-block small" style="font-size: 0.88rem; line-height: 1.4;">{{ msg.text }}</span>
+              
+              <!-- Bubble Footer: Timestamp & Seen status indicators -->
+              <div class="d-flex align-items-center justify-content-end mt-1 gap-1 text-secondary" style="font-size: 0.65rem; opacity: 0.8;">
+                <span>{{ msg.timestampIso | date:'shortTime' }}</span>
+                <!-- Seen tick checks -->
+                <span *ngIf="msg.senderId === playerId" [title]="'Seen by: ' + msg.seenBy.join(', ')">
+                  <i class="bi bi-check2-all text-info" *ngIf="msg.seenBy.length > 1" style="color: #53bdeb !important;"></i>
+                  <i class="bi bi-check2 text-secondary" *ngIf="msg.seenBy.length <= 1"></i>
+                </span>
+              </div>
+
             </div>
-            
-            <!-- Read receipts / Seen indicator -->
-            <span class="seen-indicator small text-secondary mt-0.5 d-flex align-items-center" 
-                  style="font-size: 0.65rem;"
-                  [title]="'Seen by: ' + msg.seenBy.join(', ')">
-              <i class="bi bi-check2-all text-primary me-1" *ngIf="msg.seenBy.length > 1"></i>
-              {{ msg.seenBy.length > 1 ? 'Seen (' + (msg.seenBy.length - 1) + ')' : 'Sent' }}
-            </span>
           </div>
+          
           <div *ngIf="room.chatMessages.length === 0" class="text-secondary small italic text-center py-5">
-            Send a message to other players!
+            <i class="bi bi-chat-dots fs-3 d-block mb-2 opacity-50"></i>
+            Send a message to start conversing!
           </div>
         </div>
 
-        <!-- Chat Input Footer -->
-        <form (ngSubmit)="sendChatMessage()" class="p-3 border-top border-white border-opacity-5 bg-dark bg-opacity-30 d-flex gap-2">
+        <!-- WhatsApp Styled Footer Input bar -->
+        <form (ngSubmit)="sendChatMessage()" class="p-3 bg-dark bg-opacity-45 d-flex gap-2 align-items-center" style="background: #1f2c34 !important; border-top: 1px solid rgba(255,255,255,0.03);">
           <input 
             type="text" 
             name="chatInputText" 
             [(ngModel)]="chatInput" 
-            class="form-control form-glass-input form-control-sm flex-grow-1" 
-            placeholder="Type message..." 
+            class="form-control rounded-pill form-glass-input border-0 py-2 px-3 flex-grow-1" 
+            placeholder="Type a message..." 
             autocomplete="off"
+            style="background: #2a3942 !important; color: #fff; font-size: 0.88rem; outline: none; box-shadow: none;"
             required>
-          <button type="submit" class="btn btn-primary btn-sm px-3" [disabled]="!chatInput.trim()">
-            <i class="bi bi-send-fill"></i>
+          <button type="submit" class="btn btn-success rounded-circle d-flex align-items-center justify-content-center p-2.5 border-0" 
+                  [disabled]="!chatInput.trim()"
+                  style="background: #00a884; width: 40px; height: 40px; transition: all 0.2s;">
+            <i class="bi bi-send-fill text-white" style="font-size: 0.95rem;"></i>
           </button>
         </form>
       </div>

@@ -48,6 +48,9 @@ export class SignalrService {
   private kicked = new Subject<void>();
   public kicked$ = this.kicked.asObservable();
 
+  private actionNotificationReceived = new Subject<{ playerName: string, actionText: string }>();
+  public actionNotificationReceived$ = this.actionNotificationReceived.asObservable();
+
   constructor(private roomService: RoomService) {}
 
   public startConnection(roomCode: string, playerId: string): Promise<void> {
@@ -135,6 +138,10 @@ export class SignalrService {
       this.kicked.next();
     });
 
+    this.hubConnection.on('ReceiveActionNotification', (playerName: string, actionText: string) => {
+      this.actionNotificationReceived.next({ playerName, actionText });
+    });
+
     // Handle auto reconnection
     this.hubConnection.onreconnected(connectionId => {
       console.log('SignalR reconnected. ConnectionId:', connectionId);
@@ -176,6 +183,10 @@ export class SignalrService {
 
   public sendHeartbeat(): Promise<void> {
     return this.hubConnection.invoke('SendHeartbeat', this.roomCode, this.playerId);
+  }
+
+  public broadcastActionNotification(actionType: string): Promise<void> {
+    return this.hubConnection.invoke('BroadcastActionNotification', this.roomCode, this.playerId, actionType);
   }
 
   public disconnect(): void {

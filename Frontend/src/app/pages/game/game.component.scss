@@ -294,6 +294,16 @@
 /* Chat System Styles */
 .chat-container {
   max-width: 320px;
+  
+  @media (max-width: 576px) {
+    max-width: none;
+    width: 100%;
+    pointer-events: none;
+    
+    .chat-toast, .chat-toggle-btn {
+      pointer-events: auto;
+    }
+  }
 }
 
 .chat-toggle-btn {
@@ -303,6 +313,7 @@
   width: 56px;
   height: 56px;
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &:hover {
     transform: scale(1.1);
@@ -313,7 +324,22 @@
 .chat-window {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  width: 340px;
+  height: 460px;
+  bottom: 75px;
+  right: 0;
+  z-index: 1050;
+  
+  @media (max-width: 576px) {
+    position: fixed;
+    top: 15px;
+    bottom: 90px;
+    left: 15px;
+    right: 15px;
+    width: auto;
+    height: auto;
+    pointer-events: auto;
+  }
 }
 
 .chat-toast {
@@ -322,6 +348,34 @@
   color: #fff;
   backdrop-filter: blur(8px);
   width: 280px;
+}
+
+/* Top Action Notification Toast */
+.toast-notification-container {
+  pointer-events: none;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  justify-content: center;
+}
+
+.toast-notification {
+  pointer-events: auto;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes slideUp {
