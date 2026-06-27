@@ -51,13 +51,54 @@
           Lobby: <strong class="text-warning">{{ room.players.length }}/5 Players</strong>
         </span>
       </div>
-      <div class="mt-2 mt-sm-0">
-        <button class="btn btn-glass btn-sm me-2" (click)="copyRoomCode()">
-          <i class="bi bi-clipboard-fill me-1"></i> Code
+      <div class="mt-2 mt-sm-0 d-flex gap-2">
+        <button class="btn btn-glass btn-sm" (click)="isPlayersListOpen = !isPlayersListOpen">
+          <i class="bi bi-people-fill me-1 text-primary"></i> Players
+        </button>
+        <button class="btn btn-glass btn-sm" (click)="copyRoomCode()">
+          <i class="bi bi-clipboard-fill me-1 text-info"></i> Code
         </button>
         <button class="btn btn-glass btn-sm" (click)="copyShareUrl()">
-          <i class="bi bi-share-fill me-1"></i> Share Link
+          <i class="bi bi-share-fill me-1 text-warning"></i> Share Link
         </button>
+      </div>
+    </div>
+
+    <!-- Collapsible Players List Panel -->
+    <div class="glass-card p-3 mb-4 animate-fade-in-up border-primary border-opacity-10" *ngIf="isPlayersListOpen && room">
+      <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-white border-opacity-5 pb-2">
+        <h5 class="fw-bold mb-0 text-white"><i class="bi bi-people-fill text-primary me-2"></i>Lobby Members</h5>
+        <button class="btn-close btn-close-white btn-sm border-0 bg-transparent" (click)="isPlayersListOpen = false"></button>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-4 col-sm-6" *ngFor="let p of room.players">
+          <div class="d-flex align-items-center p-2 rounded bg-white bg-opacity-5 border border-white border-opacity-5 animate-fade-in">
+            <span class="p-1 rounded-circle me-2"
+                  [class.bg-success]="p.isConnected && !p.isIdle"
+                  [class.bg-warning]="p.isConnected && p.isIdle"
+                  [class.bg-danger]="!p.isConnected"
+                  [title]="p.isConnected ? (p.isIdle ? 'Idle' : 'Online') : 'Offline'"
+                  style="width: 8px; height: 8px; display: inline-block;">
+            </span>
+            <div class="text-start">
+              <span class="text-white d-block fw-semibold small text-truncate" style="max-width: 120px; font-size: 0.85rem;">
+                {{ p.name }} <span *ngIf="p.playerId === playerId" class="text-success small">(You)</span>
+              </span>
+              <span class="text-secondary small d-block" style="font-size: 0.7rem;">
+                {{ p.isHost ? 'Host' : 'Guest' }} &bull; {{ p.isConnected ? (p.isIdle ? 'Idle' : 'Active') : 'Offline' }}
+              </span>
+            </div>
+            
+            <!-- Kick player options (Host only, cannot kick self) -->
+            <button 
+              *ngIf="me?.isHost && p.playerId !== playerId" 
+              class="btn btn-outline-danger btn-sm border-0 ms-auto p-1 py-0 d-flex align-items-center"
+              (click)="kickPlayer(p.playerId)" 
+              title="Remove Player">
+              <i class="bi bi-person-x-fill fs-5"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -207,19 +248,34 @@
               </div>
             </div>
 
-            <!-- Players Ready Status -->
-            <div class="mb-3">
-              <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Players Status</span>
-              <div class="d-flex flex-column gap-2">
+            <!-- Players Ready Status (Real-time Progress Bars) -->
+            <div class="mb-3 animate-fade-in-up">
+              <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Players Live Progress</span>
+              <div class="d-flex flex-column gap-3">
                 <div 
                   *ngFor="let p of room.players" 
-                  class="d-flex align-items-center py-2 px-3 rounded-3 bg-white bg-opacity-5 border border-white border-opacity-5 small">
-                  <span class="text-white">{{ p.name }} <span *ngIf="p.playerId === playerId" class="text-secondary opacity-75">(You)</span></span>
-                  <span class="ms-auto badge rounded-pill px-3 py-1" 
-                        [class.bg-success-subtle]="p.isReady" [class.text-success]="p.isReady"
-                        [class.bg-warning-subtle]="!p.isReady" [class.text-warning]="!p.isReady">
-                    {{ p.isReady ? 'READY' : 'ARRANGING...' }}
-                  </span>
+                  class="p-2.5 rounded-3 bg-white bg-opacity-5 border border-white border-opacity-5">
+                  <div class="d-flex align-items-center mb-1.5 small">
+                    <span class="text-white fw-medium">
+                      {{ p.name }} 
+                      <span *ngIf="p.playerId === playerId" class="text-success small">(You)</span>
+                    </span>
+                    <span class="ms-auto badge rounded-pill px-2 py-0.5" 
+                          [class.bg-success-subtle]="p.isReady" [class.text-success]="p.isReady"
+                          [class.bg-warning-subtle]="!p.isReady" [class.text-warning]="!p.isReady"
+                          style="font-size: 0.7rem;">
+                      {{ p.isReady ? 'READY' : (p.numbersPlaced || 0) + '/25' }}
+                    </span>
+                  </div>
+                  <div class="progress bg-secondary bg-opacity-10" style="height: 5px;">
+                    <div class="progress-bar transition-all" role="progressbar"
+                         [class.bg-success]="p.isReady"
+                         [class.bg-warning]="!p.isReady"
+                         [class.progress-bar-striped]="!p.isReady"
+                         [class.progress-bar-animated]="!p.isReady"
+                         [style.width.%]="p.isReady ? 100 : (p.numbersPlaced || 0) * 4">
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -326,40 +382,61 @@
               <i class="bi bi-controller text-primary me-2"></i>Active Match
             </h4>
 
-            <!-- Opponents status sidebar -->
+            <!-- Match Standings & Win Probability sidebar -->
             <div class="mb-4">
-              <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Opponents progress</span>
+              <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Match Standings & Odds</span>
               <div class="d-flex flex-column gap-3">
                 <div 
-                  *ngFor="let p of opponents" 
-                  class="p-3 rounded-3 bg-white bg-opacity-5 border transition-all"
+                  *ngFor="let p of room.players" 
+                  class="p-3 rounded-3 transition-all border"
                   [class.border-success]="room.currentTurnPlayerId === p.playerId"
                   [class.border-white]="room.currentTurnPlayerId !== p.playerId"
                   [class.border-opacity-5]="room.currentTurnPlayerId !== p.playerId"
+                  [class.bg-primary]="p.playerId === playerId"
+                  [class.bg-opacity-10]="p.playerId === playerId"
+                  [class.bg-white]="p.playerId !== playerId"
+                  [class.bg-opacity-5]="p.playerId !== playerId"
                   [style.box-shadow]="room.currentTurnPlayerId === p.playerId ? '0 0 15px rgba(25, 135, 84, 0.25)' : ''">
                   
                   <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="d-flex align-items-center">
                       <span 
                         class="p-1 rounded-circle me-2"
-                        [class.bg-success]="p.isConnected"
+                        [class.bg-success]="p.isConnected && !p.isIdle"
+                        [class.bg-warning]="p.isConnected && p.isIdle"
                         [class.bg-danger]="!p.isConnected"
-                        [title]="p.isConnected ? 'Online' : 'Offline'"
+                        [title]="p.isConnected ? (p.isIdle ? 'Idle' : 'Online') : 'Offline'"
                         style="width: 8px; height: 8px;">
                       </span>
                       <strong class="text-white">{{ p.name }}</strong>
-                      <span *ngIf="room.currentTurnPlayerId === p.playerId" class="badge bg-success ms-2 small">Calling...</span>
+                      <span *ngIf="p.playerId === playerId" class="text-success small ms-1" style="font-size: 0.75rem;">(You)</span>
+                      <span *ngIf="room.currentTurnPlayerId === p.playerId" class="badge bg-success ms-2 small" style="font-size: 0.65rem;">Calling...</span>
                     </div>
-                    <span class="text-secondary small">{{ p.board.completedLinesCount }} Lines</span>
+                    <span class="text-secondary small">{{ p.board.completedLinesCount }}/5 Lines</span>
                   </div>
 
-                  <!-- Opponent B-I-N-G-O letters status -->
-                  <div class="opponent-bingo-tracker">
+                  <!-- B-I-N-G-O letters completion -->
+                  <div class="opponent-bingo-tracker mb-2">
                     <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 0)">B</span>
                     <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 1)">I</span>
                     <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 2)">N</span>
                     <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 3)">G</span>
                     <span class="mini-letter" [class.mini-active]="isPlayerLetterCompleted(p, 4)">O</span>
+                  </div>
+
+                  <!-- Win Probability Progress Bar -->
+                  <div>
+                    <div class="d-flex justify-content-between small text-secondary mb-1" style="font-size: 0.7rem;">
+                      <span>Win Probability:</span>
+                      <span class="fw-bold text-white">{{ getWinPercentage(p) }}% near to win</span>
+                    </div>
+                    <div class="progress bg-dark bg-opacity-50" style="height: 5px;">
+                      <div class="progress-bar progress-bar-striped progress-bar-animated transition-all" role="progressbar"
+                           [class.bg-success]="p.board.completedLinesCount >= 4"
+                           [class.bg-primary]="p.board.completedLinesCount < 4"
+                           [style.width.%]="getWinPercentage(p)">
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -392,9 +469,17 @@
 
     <!-- ================= SUB-STATE D: FINISHED ================= -->
     <div *ngIf="room.state === 'Finished'" class="d-flex justify-content-center align-items-center">
-      <div class="glass-card text-center py-5 border-success border-opacity-25 animate-game-over-pop" style="max-width: 500px; width: 100%;">
+      <div class="glass-card text-center py-5" 
+           [class.border-success]="room.winnerId === playerId"
+           [class.border-opacity-25]="room.winnerId === playerId"
+           [class.border-danger]="room.winnerId !== playerId"
+           [class.border-opacity-20]="room.winnerId !== playerId"
+           [class.animate-game-over-pop]="room.winnerId === playerId"
+           [class.animate-defeat-shake]="room.winnerId !== playerId"
+           style="max-width: 500px; width: 100%;">
         <div class="win-trophy mb-4 animate-bounce-slow">
-          <i class="bi bi-trophy-fill text-warning animate-glow-trophy" style="font-size: 6rem;"></i>
+          <i *ngIf="room.winnerId === playerId" class="bi bi-trophy-fill text-warning animate-glow-trophy" style="font-size: 6rem;"></i>
+          <i *ngIf="room.winnerId !== playerId" class="bi bi-shield-slash-fill text-secondary" style="font-size: 6rem; filter: drop-shadow(0 0 15px rgba(220, 53, 69, 0.4)); animate: shake 1.5s infinite;"></i>
         </div>
         
         <h1 class="fw-extrabold tracking-tight mb-1 animate-pulse-winner">
@@ -411,20 +496,46 @@
           {{ room.winnerId === playerId ? 'Superb job! You dominated the BINGO grid!' : ('Better luck next time! ' + getWinnerName() + ' won this round.') }}
         </p>
 
-        <!-- Final scoreboard list of all players -->
+        <!-- Final scoreboard list of all players (Leaderboard Table) -->
         <div class="bg-dark bg-opacity-40 p-3 rounded-3 border border-white border-opacity-5 mb-4 text-center">
-          <span class="small text-secondary fw-semibold uppercase tracking-wider mb-2 d-block">Final Rankings</span>
-          <div class="d-flex flex-column gap-2 text-start">
-            <div 
-              *ngFor="let p of room.players" 
-              class="d-flex justify-content-between align-items-center py-2 px-3 rounded bg-white bg-opacity-5">
-              <span class="text-white fw-medium">
-                {{ p.name }} 
-                <span *ngIf="p.playerId === playerId" class="text-secondary small">(You)</span>
-                <span *ngIf="p.playerId === room.winnerId" class="text-warning ms-1 font-size-sm"><i class="bi bi-trophy-fill me-1"></i>Winner</span>
-              </span>
-              <strong class="text-white">{{ p.board.completedLinesCount }} Lines Completed</strong>
-            </div>
+          <span class="small text-secondary fw-semibold uppercase tracking-wider mb-3 d-block">Final Rankings Leaderboard</span>
+          <div class="table-responsive animate-fade-in-up">
+            <table class="table table-dark table-borderless align-middle text-start mb-0" style="font-size: 0.9rem;">
+              <thead>
+                <tr class="text-secondary border-bottom border-white border-opacity-10" style="font-size: 0.75rem;">
+                  <th scope="col" style="width: 60px;">Rank</th>
+                  <th scope="col">Player</th>
+                  <th scope="col" class="text-center">Lines</th>
+                  <th scope="col" class="text-end">Completion</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of getRankedPlayers(); let i = index" class="border-bottom border-white border-opacity-5"
+                    [class.table-active]="p.playerId === playerId">
+                  <td>
+                    <span class="badge rounded-circle d-inline-flex align-items-center justify-content-center text-white"
+                          [class.bg-warning]="i === 0"
+                          [class.bg-secondary]="i === 1"
+                          [class.bg-danger]="i === 2"
+                          [class.bg-dark]="i > 2"
+                          style="width: 24px; height: 24px; font-weight: bold; font-size: 0.75rem;">
+                      {{ i + 1 }}
+                    </span>
+                  </td>
+                  <td class="fw-semibold text-white">
+                    {{ p.name }}
+                    <span *ngIf="p.playerId === playerId" class="text-success small ms-1">(You)</span>
+                    <span *ngIf="p.playerId === room.winnerId" class="text-warning ms-1" title="Match Winner">🏆</span>
+                  </td>
+                  <td class="text-center text-info fw-bold">{{ p.board.completedLinesCount }} / 5</td>
+                  <td class="text-end">
+                    <span class="fw-bold" [class.text-success]="getWinPercentage(p) === 100" [class.text-primary]="getWinPercentage(p) < 100">
+                      {{ getWinPercentage(p) }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -437,6 +548,104 @@
             <i class="bi bi-house-door-fill me-2"></i>Return Home
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ================= IN-GAME REAL-TIME CHAT ================= -->
+    <div class="chat-container position-fixed bottom-0 end-0 m-4 z-3" *ngIf="room">
+      
+      <!-- Chat Notification Toast (Above Button when Closed) -->
+      <div class="chat-toast p-3 rounded-3 shadow-lg border border-primary border-opacity-20 animate-fade-in mb-3 d-flex align-items-center gap-2 animate-bounce-slow"
+           *ngIf="chatToast && !isChatOpen"
+           style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+        <i class="bi bi-chat-left-dots-fill text-primary"></i>
+        <div class="text-start">
+          <strong class="text-white d-block small">{{ chatToast.sender }}</strong>
+          <span class="text-secondary small text-truncate d-block" style="max-width: 180px;">{{ chatToast.text }}</span>
+        </div>
+        <button class="btn-close btn-close-white ms-auto btn-sm border-0 bg-transparent" (click)="clearChatToastTimeout()"></button>
+      </div>
+
+      <!-- Chat Floating Button Toggle -->
+      <div class="d-flex justify-content-end">
+        <button 
+          class="btn btn-primary rounded-circle shadow-lg chat-toggle-btn d-flex align-items-center justify-content-center position-relative"
+          [class.btn-success]="isChatOpen"
+          (click)="toggleChat()"
+          style="width: 56px; height: 56px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.1);">
+          <i class="bi fs-4" [class.bi-chat-text-fill]="!isChatOpen" [class.bi-x-lg]="isChatOpen"></i>
+          <!-- Unread message badge -->
+          <span 
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+            *ngIf="unreadChatCount > 0"
+            style="font-size: 0.75rem;">
+            {{ unreadChatCount }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Translucent Slide-up Chat Window -->
+      <div class="chat-window glass-card flex-column position-absolute bottom-100 end-0 mb-3 shadow-lg border border-white border-opacity-10 animate-slide-up"
+           [style.display]="isChatOpen ? 'flex' : 'none'"
+           style="width: 320px; height: 400px; border-radius: 12px; overflow: hidden; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px);">
+           
+        <!-- Chat Header -->
+        <div class="chat-header d-flex align-items-center justify-content-between p-3 border-bottom border-white border-opacity-5">
+          <h6 class="fw-bold mb-0 text-white"><i class="bi bi-chat-text-fill text-primary me-2"></i>Match Chat</h6>
+          <button class="btn-close btn-close-white btn-sm border-0 bg-transparent" (click)="toggleChat()"></button>
+        </div>
+
+        <!-- Chat Body (Messages List) -->
+        <div class="chat-body flex-grow-1 p-3 overflow-auto d-flex flex-column gap-2" 
+             #chatScrollContainer
+             style="scroll-behavior: smooth;">
+          <div 
+            *ngFor="let msg of room.chatMessages" 
+            class="d-flex flex-column"
+            [class.align-items-end]="msg.senderId === playerId"
+            [class.align-items-start]="msg.senderId !== playerId">
+            
+            <span class="small text-secondary mb-0.5" style="font-size: 0.7rem;">
+              {{ msg.senderName }}
+            </span>
+            <div class="p-2.5 rounded-3 text-white small" 
+                 [class.bg-primary]="msg.senderId === playerId"
+                 [class.bg-white]="msg.senderId !== playerId"
+                 [class.bg-opacity-10]="msg.senderId !== playerId"
+                 [class.border]="msg.senderId !== playerId"
+                 [class.border-white]="msg.senderId !== playerId"
+                 [class.border-opacity-5]="msg.senderId !== playerId"
+                 style="max-width: 85%; word-break: break-word; text-align: left;">
+              {{ msg.text }}
+            </div>
+            
+            <!-- Read receipts / Seen indicator -->
+            <span class="seen-indicator small text-secondary mt-0.5 d-flex align-items-center" 
+                  style="font-size: 0.65rem;"
+                  [title]="'Seen by: ' + msg.seenBy.join(', ')">
+              <i class="bi bi-check2-all text-primary me-1" *ngIf="msg.seenBy.length > 1"></i>
+              {{ msg.seenBy.length > 1 ? 'Seen (' + (msg.seenBy.length - 1) + ')' : 'Sent' }}
+            </span>
+          </div>
+          <div *ngIf="room.chatMessages.length === 0" class="text-secondary small italic text-center py-5">
+            Send a message to other players!
+          </div>
+        </div>
+
+        <!-- Chat Input Footer -->
+        <form (ngSubmit)="sendChatMessage()" class="p-3 border-top border-white border-opacity-5 bg-dark bg-opacity-30 d-flex gap-2">
+          <input 
+            type="text" 
+            name="chatInputText" 
+            [(ngModel)]="chatInput" 
+            class="form-control form-glass-input form-control-sm flex-grow-1" 
+            placeholder="Type message..." 
+            autocomplete="off"
+            required>
+          <button type="submit" class="btn btn-primary btn-sm px-3" [disabled]="!chatInput.trim()">
+            <i class="bi bi-send-fill"></i>
+          </button>
+        </form>
       </div>
     </div>
 

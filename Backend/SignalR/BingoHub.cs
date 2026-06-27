@@ -223,6 +223,137 @@ namespace Backend.SignalR
             }
         }
 
+        private void UpdateActivity(GameRoom room, string playerId)
+        {
+            var player = room.GetPlayer(playerId);
+            if (player != null)
+            {
+                player.LastActive = DateTime.UtcNow;
+            }
+        }
+
+        public async Task SendChatMessage(string roomCode, string playerId, string text)
+        {
+            roomCode = roomCode.ToUpperInvariant();
+            var room = _roomService.GetRoom(roomCode);
+            if (room == null) return;
+
+            var player = room.GetPlayer(playerId);
+            if (player == null) return;
+
+            UpdateActivity(room, playerId);
+
+            var message = new ChatMessage
+            {
+                SenderId = playerId,
+                SenderName = player.Name,
+                Text = text,
+                Timestamp = DateTime.UtcNow
+            };
+            message.SeenBy.Add(playerId);
+
+            room.ChatMessages.Add(message);
+
+            await Clients.Group(roomCode).SendAsync("ReceiveChatMessage", new ChatMessageDto
+            {
+                Id = message.Id,
+                SenderId = message.SenderId,
+                SenderName = message.SenderName,
+                Text = message.Text,
+                TimestampIso = message.Timestamp.ToString("o"),
+                SeenBy = message.SeenBy.ToList()
+            });
+
+            await Clients.Group(roomCode).SendAsync("UpdateBoard", room.ToDto());
+        }
+
+        public async Task MarkMessagesAsRead(string roomCode, string playerId)
+        {
+            roomCode = roomCode.ToUpperInvariant();
+            var room = _roomService.GetRoom(roomCode);
+            if (room == null) return;
+
+            UpdateActivity(room, playerId);
+
+            bool updated = false;
+            foreach (var msg in room.ChatMessages)
+            {
+                if (!msg.SeenBy.Contains(playerId))
+                {
+                    msg.SeenBy.Add(playerId);
+                    updated = true;
+                }
+            }
+
+            if (updated)
+            {
+                await Clients.Group(roomCode).SendAsync("UpdateBoard", room.ToDto());
+            }
+        }
+
+        public async Task UpdateSetupProgress(string roomCode, string playerId, int count)
+        {
+            roomCode = roomCode.ToUpperInvariant();
+            var room = _roomService.GetRoom(roomCode);
+            if (room == null) return;
+
+            var player = room.GetPlayer(playerId);
+            if (player == null) return;
+
+            UpdateActivity(room, playerId);
+            player.NumbersPlaced = count;
+
+            await Clients.Group(roomCode).SendAsync("SetupProgressUpdated", playerId, count);
+        }
+
+        public async Task KickPlayer(string roomCode, string playerId, string targetPlayerId)
+        {
+            roomCode = roomCode.ToUpperInvariant();
+            var room = _roomService.GetRoom(roomCode);
+            if (room == null) return;
+
+            var host = room.GetPlayer(playerId);
+            if (host == null || !host.IsHost) return;
+
+            var target = room.GetPlayer(targetPlayerId);
+            if (target == null) return;
+
+            if (!string.IsNullOrEmpty(target.ConnectionId))
+            {
+                await Clients.Client(target.ConnectionId).SendAsync("Kicked");
+            }
+
+            room.Players.Remove(target);
+
+            if (room.Players.Count(pl => pl.IsConnected) < 2)
+            {
+                _roomService.RemoveRoom(roomCode);
+                await Clients.Group(roomCode).SendAsync("RoomClosed");
+            }
+            else
+            {
+                await Clients.Group(roomCode).SendAsync("PlayerLeft", targetPlayerId);
+
+                if (room.CurrentTurnPlayerId == targetPlayerId)
+                {
+                    int nextIndex = 0;
+                    room.CurrentTurnPlayerId = room.Players[nextIndex].PlayerId;
+                }
+
+                await Clients.Group(roomCode).SendAsync("UpdateBoard", room.ToDto());
+            }
+        }
+
+        public async Task SendHeartbeat(string roomCode, string playerId)
+        {
+            roomCode = roomCode.ToUpperInvariant();
+            var room = _roomService.GetRoom(roomCode);
+            if (room == null) return;
+
+            UpdateActivity(room, playerId);
+            await Clients.Group(roomCode).SendAsync("UpdateBoard", room.ToDto());
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var (room, player) = _roomService.GetRoomAndPlayerByConnectionId(Context.ConnectionId);

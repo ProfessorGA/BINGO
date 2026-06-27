@@ -3,6 +3,16 @@ using Backend.Models;
 
 namespace Backend.DTOs
 {
+    public class ChatMessageDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string SenderId { get; set; } = string.Empty;
+        public string SenderName { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+        public string TimestampIso { get; set; } = string.Empty;
+        public List<string> SeenBy { get; set; } = new();
+    }
+
     public class CellResponseDto
     {
         public int Number { get; set; }
@@ -26,6 +36,8 @@ namespace Backend.DTOs
         public BoardResponseDto Board { get; set; } = new();
         public bool IsConnected { get; set; }
         public bool PlayAgainRequested { get; set; }
+        public int NumbersPlaced { get; set; }
+        public bool IsIdle { get; set; }
     }
 
     public class RoomResponseDto
@@ -36,5 +48,6 @@ namespace Backend.DTOs
         public string? WinnerId { get; set; }
         public string? CurrentTurnPlayerId { get; set; }
         public List<PlayerResponseDto> Players { get; set; } = new();
+        public List<ChatMessageDto> ChatMessages { get; set; } = new();
     }
 }

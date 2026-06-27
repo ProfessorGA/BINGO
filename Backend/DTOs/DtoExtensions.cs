@@ -14,7 +14,16 @@ namespace Backend.DTOs
                 SelectedNumbers = room.SelectedNumbers,
                 WinnerId = room.WinnerId,
                 CurrentTurnPlayerId = room.CurrentTurnPlayerId,
-                Players = room.Players.Select(p => p.ToDto()).ToList()
+                Players = room.Players.Select(p => p.ToDto()).ToList(),
+                ChatMessages = room.ChatMessages.Select(m => new ChatMessageDto
+                {
+                    Id = m.Id,
+                    SenderId = m.SenderId,
+                    SenderName = m.SenderName,
+                    Text = m.Text,
+                    TimestampIso = m.Timestamp.ToString("o"),
+                    SeenBy = m.SeenBy.ToList()
+                }).ToList()
             };
         }
 
@@ -28,7 +37,9 @@ namespace Backend.DTOs
                 IsReady = player.IsReady,
                 Board = player.Board.ToDto(),
                 IsConnected = player.IsConnected,
-                PlayAgainRequested = player.PlayAgainRequested
+                PlayAgainRequested = player.PlayAgainRequested,
+                NumbersPlaced = player.NumbersPlaced,
+                IsIdle = player.IsConnected && (System.DateTime.UtcNow - player.LastActive).TotalSeconds > 60
             };
         }
 

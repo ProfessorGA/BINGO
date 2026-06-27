@@ -18,6 +18,17 @@ export interface Player {
   board: Board;
   isConnected: boolean;
   playAgainRequested: boolean;
+  numbersPlaced: number;
+  isIdle: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestampIso: string;
+  seenBy: string[];
 }
 
 export interface GameRoom {
@@ -27,4 +38,5 @@ export interface GameRoom {
   winnerId: string | null;
   currentTurnPlayerId: string | null;
   players: Player[];
+  chatMessages: ChatMessage[];
 }

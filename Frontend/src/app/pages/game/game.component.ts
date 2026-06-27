@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -45,6 +45,18 @@ export class GameComponent implements OnInit, OnDestroy {
   confettiParticles: any[] = [];
   private confettiInterval: any;
 
+  // Chat and layout states
+  isChatOpen: boolean = false;
+  chatInput: string = '';
+  unreadChatCount: number = 0;
+  chatToast: { sender: string; text: string } | null = null;
+  private toastTimeout: any;
+
+  isPlayersListOpen: boolean = false;
+  private heartbeatInterval: any;
+
+  @ViewChild('chatScrollContainer') private chatScrollContainer!: ElementRef;
+
   private subs: Subscription = new Subscription();
 
   constructor(
@@ -82,6 +94,8 @@ export class GameComponent implements OnInit, OnDestroy {
     this.signalrService.disconnect();
     this.clearDisconnectTimer();
     this.clearConfetti();
+    this.clearHeartbeat();
+    this.clearChatToastTimeout();
   }
 
   private initializeGame() {
@@ -95,6 +109,7 @@ export class GameComponent implements OnInit, OnDestroy {
           .then(() => {
             this.isLoading = false;
             this.setupSignalRListeners();
+            this.startHeartbeat();
           })
           .catch(err => {
             this.isLoading = false;
@@ -192,6 +207,44 @@ export class GameComponent implements OnInit, OnDestroy {
         this.gameErrorMessage = err;
       })
     );
+
+    // Chat listener
+    this.subs.add(
+      this.signalrService.chatMessageReceived$.subscribe(message => {
+        if (this.isChatOpen) {
+          this.signalrService.markMessagesAsRead();
+        } else {
+          if (message.senderId !== this.playerId) {
+            this.unreadChatCount++;
+            this.showChatToast(message.senderName, message.text);
+          }
+        }
+        setTimeout(() => this.scrollToBottom(), 100);
+      })
+    );
+
+    // Setup Progress listener
+    this.subs.add(
+      this.signalrService.setupProgressUpdated$.subscribe(data => {
+        if (this.room) {
+          const player = this.room.players.find(p => p.playerId === data.playerId);
+          if (player) {
+            player.numbersPlaced = data.count;
+          }
+        }
+      })
+    );
+
+    // Kick listener
+    this.subs.add(
+      this.signalrService.kicked$.subscribe(() => {
+        this.clearHeartbeat();
+        this.signalrService.disconnect();
+        sessionStorage.clear();
+        this.errorMessage = 'You have been kicked/removed from this room by the host.';
+        setTimeout(() => this.router.navigate(['/']), 4000);
+      })
+    );
   }
 
   private updateRoomState(room: GameRoom) {
@@ -220,12 +273,14 @@ export class GameComponent implements OnInit, OnDestroy {
 
     this.boardNumbers[index] = this.nextNumberToPlace;
     this.nextNumberToPlace++;
+    this.signalrService.updateSetupProgress(this.nextNumberToPlace - 1).catch(() => {});
   }
 
   clearBoard() {
     if (this.isReadyClicked) return;
     this.boardNumbers = Array(25).fill(0);
     this.nextNumberToPlace = 1;
+    this.signalrService.updateSetupProgress(0).catch(() => {});
   }
 
   submitReady() {
@@ -350,6 +405,85 @@ export class GameComponent implements OnInit, OnDestroy {
     if (!activeRoom || !activeRoom.winnerId) return '';
     const player = activeRoom.players.find(p => p.playerId === activeRoom.winnerId);
     return player ? player.name : '';
+  }
+
+  // Heartbeat routines
+  private startHeartbeat() {
+    this.clearHeartbeat();
+    this.heartbeatInterval = setInterval(() => {
+      this.signalrService.sendHeartbeat().catch(() => {});
+    }, 10000);
+  }
+
+  private clearHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  // Chat routines
+  toggleChat() {
+    this.isChatOpen = !this.isChatOpen;
+    if (this.isChatOpen) {
+      this.unreadChatCount = 0;
+      this.signalrService.markMessagesAsRead();
+      setTimeout(() => this.scrollToBottom(), 100);
+    }
+  }
+
+  sendChatMessage() {
+    const text = this.chatInput.trim();
+    if (!text) return;
+    this.signalrService.sendChatMessage(text).then(() => {
+      this.chatInput = '';
+      setTimeout(() => this.scrollToBottom(), 100);
+    }).catch(err => {
+      this.gameErrorMessage = 'Failed to send message.';
+    });
+  }
+
+  showChatToast(sender: string, text: string) {
+    this.clearChatToastTimeout();
+    this.chatToast = { sender, text };
+    this.toastTimeout = setTimeout(() => {
+      this.chatToast = null;
+    }, 4000);
+  }
+
+  clearChatToastTimeout() {
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+      this.toastTimeout = null;
+    }
+  }
+
+  // Percentage routines
+  getWinPercentage(player: Player): number {
+    if (!player || !player.board) return 0;
+    const count = player.board.completedLinesCount || 0;
+    return Math.min(100, Math.round((count / 5.0) * 100));
+  }
+
+  getRankedPlayers(): Player[] {
+    if (!this.room) return [];
+    return [...this.room.players].sort((a, b) => b.board.completedLinesCount - a.board.completedLinesCount);
+  }
+
+  scrollToBottom(): void {
+    try {
+      if (this.chatScrollContainer) {
+        this.chatScrollContainer.nativeElement.scrollTop = this.chatScrollContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {}
+  }
+
+  // Member management
+  kickPlayer(targetPlayerId: string) {
+    if (!confirm('Are you sure you want to remove this player from the game room?')) return;
+    this.signalrService.kickPlayer(targetPlayerId).catch(err => {
+      this.gameErrorMessage = 'Failed to kick player.';
+    });
   }
 
   // Timer routines

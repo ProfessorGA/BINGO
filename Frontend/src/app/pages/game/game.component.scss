@@ -290,3 +290,77 @@
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
   transform: scale(1.08);
 }
+
+/* Chat System Styles */
+.chat-container {
+  max-width: 320px;
+}
+
+.chat-toggle-btn {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.chat-toast {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  width: 280px;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Broken Shield / Defeat animations */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-defeat-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+/* Custom table backgrounds for rankings */
+.table-dark {
+  background-color: transparent !important;
+  --bs-table-bg: transparent !important;
+}
+
+.table-active {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  --bs-table-active-bg: rgba(59, 130, 246, 0.1) !important;
+}
+
+.font-size-xs {
+  font-size: 0.7rem;
+}

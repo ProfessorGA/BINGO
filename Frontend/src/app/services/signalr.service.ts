@@ -38,6 +38,15 @@ export class SignalrService {
 
   private errorOccurred = new Subject<string>();
   public errorOccurred$ = this.errorOccurred.asObservable();
+  
+  private chatMessageReceived = new Subject<any>();
+  public chatMessageReceived$ = this.chatMessageReceived.asObservable();
+
+  private setupProgressUpdated = new Subject<{ playerId: string, count: number }>();
+  public setupProgressUpdated$ = this.setupProgressUpdated.asObservable();
+
+  private kicked = new Subject<void>();
+  public kicked$ = this.kicked.asObservable();
 
   constructor(private roomService: RoomService) {}
 
@@ -114,6 +123,18 @@ export class SignalrService {
       this.errorOccurred.next(err);
     });
 
+    this.hubConnection.on('ReceiveChatMessage', (message: any) => {
+      this.chatMessageReceived.next(message);
+    });
+
+    this.hubConnection.on('SetupProgressUpdated', (playerId: string, count: number) => {
+      this.setupProgressUpdated.next({ playerId, count });
+    });
+
+    this.hubConnection.on('Kicked', () => {
+      this.kicked.next();
+    });
+
     // Handle auto reconnection
     this.hubConnection.onreconnected(connectionId => {
       console.log('SignalR reconnected. ConnectionId:', connectionId);
@@ -135,6 +156,26 @@ export class SignalrService {
 
   public requestPlayAgain(): Promise<void> {
     return this.hubConnection.invoke('PlayAgain', this.roomCode, this.playerId);
+  }
+
+  public sendChatMessage(text: string): Promise<void> {
+    return this.hubConnection.invoke('SendChatMessage', this.roomCode, this.playerId, text);
+  }
+
+  public markMessagesAsRead(): Promise<void> {
+    return this.hubConnection.invoke('MarkMessagesAsRead', this.roomCode, this.playerId);
+  }
+
+  public updateSetupProgress(count: number): Promise<void> {
+    return this.hubConnection.invoke('UpdateSetupProgress', this.roomCode, this.playerId, count);
+  }
+
+  public kickPlayer(targetPlayerId: string): Promise<void> {
+    return this.hubConnection.invoke('KickPlayer', this.roomCode, this.playerId, targetPlayerId);
+  }
+
+  public sendHeartbeat(): Promise<void> {
+    return this.hubConnection.invoke('SendHeartbeat', this.roomCode, this.playerId);
   }
 
   public disconnect(): void {

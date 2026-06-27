@@ -14,6 +14,7 @@ namespace Backend.Models
         public string? WinnerId { get; set; }
         public string? CurrentTurnPlayerId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public List<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 
         public GameRoom() { }
 

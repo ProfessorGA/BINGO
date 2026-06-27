@@ -13,6 +13,8 @@ namespace Backend.Models
         public bool IsConnected { get; set; } = true;
         public bool PlayAgainRequested { get; set; } = false;
         public DateTime? LastSeenDisconnect { get; set; }
+        public int NumbersPlaced { get; set; } = 0;
+        public DateTime LastActive { get; set; } = DateTime.UtcNow;
 
         public Player() { }
 
