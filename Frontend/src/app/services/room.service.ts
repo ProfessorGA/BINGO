@@ -13,7 +13,7 @@ export class RoomService {
   constructor(private http: HttpClient) {
     if (window.location.hostname !== 'localhost') {
       // Fallback production URL (Render backend). Change this to your deployed Render URL.
-      this.baseUrl = 'https://bingo-multiplayer-backend.onrender.com';
+      this.baseUrl = 'https://bingo-uwyr.onrender.com';
     }
   }
 
